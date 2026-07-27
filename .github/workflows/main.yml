@@ -22,20 +22,22 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
-    # Agar gradlew missing ho, toh ye step use auto-generate kar dega
-    - name: Ensure Gradlew Exists & Set Permission
-      run: |
-        if [ ! -f ./gradlew ]; then
-          gradle wrapper
-        fi
-        chmod +x gradlew
-
+    # Correct Subfolder Path me jaa kar APK build karega
     - name: Build Debug APK
-      run: ./gradlew assembleDebug
+      run: |
+        # Subfolder dhund kar usme ghusega (agar novaplay ya dusra folder name ho)
+        PROJECT_DIR=$(find . -maxdepth 2 -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1 | xargs dirname)
+        echo "Found project in: $PROJECT_DIR"
+        cd "$PROJECT_DIR"
+        
+        # Gradle wrapper setup aur build
+        gradle wrapper
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
-        path: app/build/outputs/apk/debug/app-debug.apk
+        path: '**/app/build/outputs/apk/debug/app-debug.apk'
         
