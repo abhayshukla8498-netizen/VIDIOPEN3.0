@@ -22,16 +22,22 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
-    - name: Find Project and Build APK
+    - name: Find Project Directory & Build
       run: |
-        # settings.gradle/kts ki file location find karte hain
-        SETTINGS_FILE=$(find . -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1)
-        PROJECT_DIR=$(dirname "$SETTINGS_FILE")
+        # Search for build.gradle or settings.gradle across all subdirectories
+        TARGET_FILE=$(find . -maxdepth 3 \( -name "settings.gradle.kts" -o -name "settings.gradle" -o -name "build.gradle.kts" \) -not -path "*/app/*" | head -n 1)
         
-        echo "Project directory found at: $PROJECT_DIR"
+        if [ -n "$TARGET_FILE" ]; then
+          PROJECT_DIR=$(dirname "$TARGET_FILE")
+        else
+          echo "Could not find build files automatically, listing directory structure:"
+          ls -la
+          exit 1
+        fi
+
+        echo "Building inside: $PROJECT_DIR"
         cd "$PROJECT_DIR"
         
-        # Gradle wrapper setup
         gradle wrapper
         chmod +x gradlew
         ./gradlew assembleDebug
