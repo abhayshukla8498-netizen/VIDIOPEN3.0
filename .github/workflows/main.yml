@@ -22,22 +22,20 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
-    - name: Find Project Directory & Build
+    - name: Unzip Project & Build APK
       run: |
-        # Search for build.gradle or settings.gradle across all subdirectories
-        TARGET_FILE=$(find . -maxdepth 3 \( -name "settings.gradle.kts" -o -name "settings.gradle" -o -name "build.gradle.kts" \) -not -path "*/app/*" | head -n 1)
+        # Zip file ko extract karte hain
+        echo "Extracting zip file..."
+        unzip -o "novaplay (1).zip"
         
-        if [ -n "$TARGET_FILE" ]; then
-          PROJECT_DIR=$(dirname "$TARGET_FILE")
-        else
-          echo "Could not find build files automatically, listing directory structure:"
-          ls -la
-          exit 1
-        fi
-
-        echo "Building inside: $PROJECT_DIR"
+        # Extracted folder ke andar project search karte hain
+        TARGET_FILE=$(find . -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1)
+        PROJECT_DIR=$(dirname "$TARGET_FILE")
+        
+        echo "Project directory found at: $PROJECT_DIR"
         cd "$PROJECT_DIR"
         
+        # Wrapper build aur permissions
         gradle wrapper
         chmod +x gradlew
         ./gradlew assembleDebug
