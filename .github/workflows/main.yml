@@ -24,18 +24,19 @@ jobs:
 
     - name: Unzip Project & Build APK
       run: |
-        # Zip file ko extract karte hain
-        echo "Extracting zip file..."
+        # Zip extract karte hain
         unzip -o "novaplay (1).zip"
         
-        # Extracted folder ke andar project search karte hain
         TARGET_FILE=$(find . -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1)
         PROJECT_DIR=$(dirname "$TARGET_FILE")
         
-        echo "Project directory found at: $PROJECT_DIR"
+        echo "Building inside: $PROJECT_DIR"
         cd "$PROJECT_DIR"
         
-        # Wrapper build aur permissions
+        # Missing debug.keystore auto-generate karte hain
+        keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+        
+        # Wrapper & Build
         gradle wrapper
         chmod +x gradlew
         ./gradlew assembleDebug
