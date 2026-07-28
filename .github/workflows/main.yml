@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APK & AAB (Signed)
 
 on:
   push:
@@ -22,28 +22,60 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
-    - name: Unzip Project & Build APK
+    - name: Unzip Project & Setup Release Key
       run: |
-        # Zip extract karte hain
+        # Extract Zip File
         unzip -o "novaplay (1).zip"
         
+        # Find directory containing settings.gradle.kts
         TARGET_FILE=$(find . -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1)
         PROJECT_DIR=$(dirname "$TARGET_FILE")
         
         echo "Building inside: $PROJECT_DIR"
         cd "$PROJECT_DIR"
         
-        # Missing debug.keystore auto-generate karte hain
-        keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+        # Generate Keystore with password: Abhay@2008
+        keytool -genkeypair -v \
+          -keystore my-upload-key.jks \
+          -storepass "Abhay@2008" \
+          -alias upload \
+          -keypass "Abhay@2008" \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -dname "CN=Abhay, OU=NovaPlay, O=Vidiopen, C=IN"
         
-        # Wrapper & Build
+        # Create debug.keystore fallback
+        keytool -genkeypair -v \
+          -keystore debug.keystore \
+          -storepass android \
+          -alias androiddebugkey \
+          -keypass android \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -dname "CN=Android Debug, O=Android, C=US"
+        
+        # Setup Gradle wrapper
         gradle wrapper
         chmod +x gradlew
-        ./gradlew assembleDebug
+        
+        # Build both APK and AAB (App Bundle)
+        ./gradlew assembleRelease bundleRelease \
+          -Pandroid.injected.signing.store.file=$(pwd)/my-upload-key.jks \
+          -Pandroid.injected.signing.store.password="Abhay@2008" \
+          -Pandroid.injected.signing.key.alias="upload" \
+          -Pandroid.injected.signing.key.password="Abhay@2008"
 
-    - name: Upload APK Artifact
+    - name: Upload APK File
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug
-        path: '**/app/build/outputs/apk/debug/app-debug.apk'
+        name: Vidiopen-Release-APK
+        path: '**/app/build/outputs/apk/release/*.apk'
+
+    - name: Upload AAB (App Bundle) File
+      uses: actions/upload-artifact@v4
+      with:
+        name: Vidiopen-Release-AAB
+        path: '**/app/build/outputs/bundle/release/*.aab'
         
